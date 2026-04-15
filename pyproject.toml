@@ -30,13 +30,14 @@ all = ["pymupdf>=1.24", "cairosvg>=2.7"]
 kicad2llm = "kicad2llm:main"
 pdfsplit = "pdfsplit:main"
 zubax-forum-export = "zubax_forum_export:main"
+align-markdown-tables = "align_markdown_tables:main"
 
 [project.urls]
 Homepage = "https://github.com/Zubax/agentic_embedded_development_toolkit"
 Repository = "https://github.com/Zubax/agentic_embedded_development_toolkit"
 
 [tool.setuptools]
-py-modules = ["kicad2llm", "pdfsplit", "zubax_forum_export"]
+py-modules = ["kicad2llm", "pdfsplit", "zubax_forum_export", "align_markdown_tables"]
 
 [tool.setuptools.package-dir]
 "" = "scripts"

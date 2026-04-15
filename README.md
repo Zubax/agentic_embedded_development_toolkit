@@ -76,3 +76,11 @@ zubax-forum-export --output-dir forum-cache https://forum.zubax.com/t/1234
 ```
 
 This writes one Markdown file per fetched topic and downloads referenced attachments into the output directory.
+
+### `align_markdown_tables.py`
+
+Align simple pipe-style Markdown tables in place. Useful after manual edits or AI-generated Markdown that left columns jagged.
+
+```bash
+align-markdown-tables spec.md
+```
