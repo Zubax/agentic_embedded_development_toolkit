@@ -29,8 +29,9 @@ Optional outputs:
 - `jsonl/*.jsonl` streaming sidecars (`--jsonl`)
 
 Examples:
-    python kicad2llm.py /path/to/project
-    python kicad2llm.py --jsonl /path/to/project
+    kicad2llm /path/to/project
+    kicad2llm --jsonl /path/to/project
+    python scripts/kicad2llm.py /path/to/project
 
 Published on https://gist.github.com/pavel-kirienko/69803e131a827738ba27a073db256669
 Pavel Kirienko <pavel.kirienko@zubax.com>, MIT license.

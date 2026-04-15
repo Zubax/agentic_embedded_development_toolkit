@@ -1,2 +1,45 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentic-embedded-development-toolkit"
+version = "0.1.0"
+description = "Simple tools for AI-assisted development of embedded software."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Pavel Kirienko", email = "pavel.kirienko@zubax.com" }]
+keywords = ["embedded", "ai", "agent", "kicad", "pdf", "toolkit"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Embedded Systems",
+    "Topic :: Utilities",
+]
+dependencies = []
+
+[project.optional-dependencies]
+pdf = ["pymupdf>=1.24"]
+kicad = ["cairosvg>=2.7"]
+all = ["pymupdf>=1.24", "cairosvg>=2.7"]
+
+[project.scripts]
+kicad2llm = "kicad2llm:main"
+pdfsplit = "pdfsplit:main"
+zubax-forum-export = "zubax_forum_export:main"
+
+[project.urls]
+Homepage = "https://github.com/Zubax/agentic_embedded_development_toolkit"
+Repository = "https://github.com/Zubax/agentic_embedded_development_toolkit"
+
+[tool.setuptools]
+py-modules = ["kicad2llm", "pdfsplit", "zubax_forum_export"]
+
+[tool.setuptools.package-dir]
+"" = "scripts"
+
 [tool.black]
 line-length = 120

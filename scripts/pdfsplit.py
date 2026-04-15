@@ -3,14 +3,15 @@
 """
 Split a large PDF into one PDF per chapter.
 Mostly intended to make complex IC datasheets more accessible to LLM agents.
-Example:
-    pdfsplit.py stm32h725vg.pdf stm32h725vg/
+
+Examples:
+    pdfsplit stm32h725vg.pdf stm32h725vg/
+    python scripts/pdfsplit.py stm32h725vg.pdf stm32h725vg/
 """
 
+import argparse
 import re
-import sys
 from pathlib import Path
-import fitz  # pip install pymupdf
 
 
 def slugify(text: str) -> str:
@@ -21,6 +22,13 @@ def slugify(text: str) -> str:
 
 
 def split_pdf_by_toc(pdf_path: str, out_dir: str) -> None:
+    try:
+        import fitz
+    except ImportError as ex:
+        raise SystemExit(
+            "Error: PyMuPDF is required for pdfsplit. Install the 'pdf' extra or install 'pymupdf' manually."
+        ) from ex
+
     src = Path(pdf_path)
     dst = Path(out_dir)
     dst.mkdir(parents=True, exist_ok=True)
@@ -52,7 +60,22 @@ def split_pdf_by_toc(pdf_path: str, out_dir: str) -> None:
         raise SystemExit("Error: no chapter PDFs were written.")
 
 
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="pdfsplit",
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("input_pdf", help="Input PDF file with an embedded table of contents.")
+    parser.add_argument("output_dir", help="Destination directory for per-chapter PDF files.")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    split_pdf_by_toc(args.input_pdf, args.output_dir)
+    return 0
+
+
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        raise SystemExit(f"Usage: {sys.argv[0]} input.pdf output_dir")
-    split_pdf_by_toc(sys.argv[1], sys.argv[2])
+    raise SystemExit(main())

@@ -13,7 +13,8 @@ FEATURES
 USAGE
 
     export ZUBAX_FORUM_API_TOKEN='...'
-    ./zubax_forum_export.py https://forum.zubax.com/t/some-slug/123
+    zubax-forum-export https://forum.zubax.com/t/some-slug/123
+    python scripts/zubax_forum_export.py https://forum.zubax.com/t/some-slug/123
 """
 
 from __future__ import annotations
