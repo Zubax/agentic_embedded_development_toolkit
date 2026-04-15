@@ -19,8 +19,8 @@ def mypy(session: nox.Session) -> None:
     """Run mypy in relaxed (non-strict) mode on every script."""
     session.install("mypy")
     # Install optional deps so type stubs are available where possible.
-    session.install("pymupdf>=1.24", "cairosvg>=2.7")
-    session.run("mypy", *SCRIPT_FILES)
+    session.install("pymupdf>=1.24", "cairosvg>=2.7", "nox")
+    session.run("mypy", *SCRIPT_FILES, "noxfile.py")
 
 
 @nox.session(python="3.12")
