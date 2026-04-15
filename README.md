@@ -54,3 +54,28 @@ zubax-forum-export --output-dir forum-cache https://forum.zubax.com/t/1234
 ```
 
 This writes one Markdown file per fetched topic and downloads referenced attachments into the output directory.
+
+## CI & Testing
+
+Continuous integration is managed with [nox](https://nox.thea.codes/) and runs automatically on every push and pull request via GitHub Actions.
+
+Available nox sessions:
+
+| Session | Description |
+|---------|-------------|
+| `mypy`  | Type-check scripts with mypy in relaxed (non-strict) mode |
+| `lint`  | Verify code formatting with Black |
+
+Run all default sessions locally:
+
+```bash
+pip install nox
+nox
+```
+
+Run a single session:
+
+```bash
+nox -s mypy
+nox -s lint
+```
