@@ -43,3 +43,12 @@ py-modules = ["kicad2llm", "pdfsplit", "zubax_forum_export"]
 
 [tool.black]
 line-length = 120
+
+[tool.mypy]
+python_version = "3.12"
+warn_unused_configs = true
+# Non-strict (relaxed) mode: rely on mypy defaults; do not enable strict flags.
+# Optional libraries without stubs are silently ignored.
+ignore_missing_imports = true
+# Relax checks that are overly noisy on untyped / third-party-stub-limited code.
+disable_error_code = ["assignment", "call-overload", "union-attr", "no-any-return", "arg-type"]

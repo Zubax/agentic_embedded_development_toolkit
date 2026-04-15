@@ -153,7 +153,9 @@ class ForumClient:
         if not self.api_key:
             return url
         parts = urlsplit(url)
-        existing_q = dict(item.split("=", 1) if "=" in item else (item, "") for item in parts.query.split("&") if item)
+        existing_q = dict(
+            tuple(item.split("=", 1)) if "=" in item else (item, "") for item in parts.query.split("&") if item
+        )
         existing_q["api_key"] = self.api_key
         existing_q["api_username"] = self.api_username
         return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(existing_q), parts.fragment))
