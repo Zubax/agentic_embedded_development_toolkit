@@ -36,11 +36,36 @@ This writes a `.kicad2llm/` directory next to the KiCad project file with JSON a
 
 ### `pdfsplit.py`
 
-Split a large PDF into separate per-chapter PDFs using its embedded table of contents and extract one whole-document text file using `pdftotext`.
+Split a large PDF into separate per-chapter directories using its embedded table of contents.
+Each chapter directory contains the chapter PDF, one 250 DPI PNG per page, and a chapter-local text dump
+generated with `pdftotext`.
+The output root also contains one whole-document text file generated with `pdftotext`.
+The tool prints one progress line to `stderr` for each processed chapter.
 Helps agents search huge datasheets.
 
 ```bash
+pdfsplit stm32h725vg.pdf
 pdfsplit stm32h725vg.pdf stm32h725vg/
+```
+
+If no output directory is given, the default destination is `.pdfsplit/<input filename>/` in the current working
+directory.
+
+Default output layout:
+
+```text
+./.pdfsplit/stm32h725vg.pdf/
+├── 01_introduction/
+│   ├── 01_introduction.pdf
+│   ├── 01_introduction.txt
+│   ├── totalpage0001_chapterpage0001.png
+│   └── ...
+├── 02_memory-and-bus-architecture/
+│   ├── 02_memory-and-bus-architecture.pdf
+│   ├── 02_memory-and-bus-architecture.txt
+│   ├── totalpage0156_chapterpage0023.png
+│   └── ...
+└── stm32h725vg.txt
 ```
 
 ### `zubax_forum_export.py`

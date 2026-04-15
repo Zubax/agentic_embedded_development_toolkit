@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
 """
-Split a large PDF into one PDF per chapter and export whole-document text.
+Split a large PDF into one directory per chapter with a chapter PDF, page PNGs,
+and chapter text, plus export whole-document text.
 Mostly intended to make complex IC datasheets more accessible to LLM agents.
 
 Examples:
+    pdfsplit stm32h725vg.pdf
     pdfsplit stm32h725vg.pdf stm32h725vg/
+    python scripts/pdfsplit.py stm32h725vg.pdf
     python scripts/pdfsplit.py stm32h725vg.pdf stm32h725vg/
 """
 
@@ -16,6 +19,9 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+PAGE_IMAGE_DPI = 250
+PAGE_NUMBER_PADDING = 4
 
 
 def slugify(text: str) -> str:
@@ -29,16 +35,25 @@ def warn(message: str) -> None:
     print(f"Warning: {message}", file=sys.stderr)
 
 
-def export_full_text(pdf_path: Path, out_dir: Path) -> None:
+def info(message: str) -> None:
+    print(message, file=sys.stderr)
+
+
+def resolve_pdftotext() -> str | None:
     pdftotext = shutil.which("pdftotext")
     if not pdftotext:
-        warn("pdftotext was not found in PATH; skipping whole-document text export.")
+        warn("pdftotext was not found in PATH; skipping text export.")
+    return pdftotext
+
+
+def export_pdf_text(pdf_path: Path, out_path: Path, pdftotext: str | None, context: str) -> None:
+    if not pdftotext:
         return
 
-    out_path = out_dir / f"{pdf_path.stem}.txt"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     temp_path: Path | None = None
     try:
-        with tempfile.NamedTemporaryFile(dir=out_dir, prefix=f"{pdf_path.stem}_", suffix=".txt", delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(dir=out_path.parent, prefix=f"{out_path.stem}_", suffix=".txt", delete=False) as tmp:
             temp_path = Path(tmp.name)
 
         result = subprocess.run(
@@ -49,7 +64,7 @@ def export_full_text(pdf_path: Path, out_dir: Path) -> None:
         )
         if result.returncode != 0:
             details = "\n".join(part for part in [result.stdout.strip(), result.stderr.strip()] if part)
-            message = f"pdftotext failed with exit code {result.returncode}; skipping whole-document text export."
+            message = f"pdftotext failed with exit code {result.returncode}; skipping {context} text export."
             if details:
                 message = f"{message}\n{details}"
             warn(message)
@@ -57,13 +72,42 @@ def export_full_text(pdf_path: Path, out_dir: Path) -> None:
 
         temp_path.replace(out_path)
     except OSError as ex:
-        warn(f"whole-document text export failed: {ex}")
+        warn(f"{context} text export failed: {ex}")
     finally:
         if temp_path is not None and temp_path.exists():
             temp_path.unlink()
 
 
-def split_pdf_by_toc(pdf_path: str, out_dir: str) -> None:
+def remove_path(path: Path) -> None:
+    if path.is_dir() and not path.is_symlink():
+        shutil.rmtree(path)
+    elif path.exists() or path.is_symlink():
+        path.unlink()
+
+
+def reset_output_dir(path: Path) -> None:
+    remove_path(path)
+    path.mkdir(parents=True, exist_ok=True)
+
+
+def export_chapter_page_images(doc, chapter_dir: Path, start: int, end: int) -> None:
+    total_page_padding = max(PAGE_NUMBER_PADDING, len(str(doc.page_count)))
+    chapter_page_count = end - start + 1
+    chapter_page_padding = max(PAGE_NUMBER_PADDING, len(str(chapter_page_count)))
+    for chapter_page_number, page_index in enumerate(range(start, end + 1), start=1):
+        png_name = (
+            f"totalpage{page_index + 1:0{total_page_padding}d}_"
+            f"chapterpage{chapter_page_number:0{chapter_page_padding}d}.png"
+        )
+        pixmap = doc.load_page(page_index).get_pixmap(dpi=PAGE_IMAGE_DPI, alpha=False)
+        pixmap.save(chapter_dir / png_name)
+
+
+def default_output_dir(pdf_path: Path) -> Path:
+    return Path.cwd() / ".pdfsplit" / pdf_path.name
+
+
+def split_pdf_by_toc(pdf_path: str, out_dir: str | None = None) -> None:
     try:
         import fitz
     except ImportError as ex:
@@ -72,8 +116,9 @@ def split_pdf_by_toc(pdf_path: str, out_dir: str) -> None:
         ) from ex
 
     src = Path(pdf_path)
-    dst = Path(out_dir)
+    dst = Path(out_dir) if out_dir is not None else default_output_dir(src)
     dst.mkdir(parents=True, exist_ok=True)
+    pdftotext = resolve_pdftotext()
     doc = fitz.open(src)
     written = 0
     try:
@@ -91,20 +136,28 @@ def split_pdf_by_toc(pdf_path: str, out_dir: str) -> None:
             end = (chapters[i + 1][1] - 2) if i + 1 < len(chapters) else total_pages - 1
             if start < 0 or start >= total_pages or end < start:
                 continue
-            out_name = f"{i + 1:02d}_{slugify(title)}.pdf"
-            out_path = dst / out_name
+            chapter_stem = f"{i + 1:02d}_{slugify(title)}"
+            chapter_dir = dst / chapter_stem
+            remove_path(dst / f"{chapter_stem}.pdf")
+            remove_path(dst / f"{chapter_stem}.txt")
+            reset_output_dir(chapter_dir)
+            out_name = f"{chapter_stem}.pdf"
+            out_path = chapter_dir / out_name
             part = fitz.open()
             try:
                 part.insert_pdf(doc, from_page=start, to_page=end)
                 part.save(out_path, deflate=True, garbage=4, clean=True)
             finally:
                 part.close()
+            export_pdf_text(out_path, chapter_dir / f"{chapter_stem}.txt", pdftotext, f"chapter '{chapter_stem}'")
+            export_chapter_page_images(doc, chapter_dir, start, end)
+            info(f"Processed chapter {chapter_stem} (pages {start + 1}-{end + 1}).")
             written += 1
     finally:
         doc.close()
     if written == 0:
         raise SystemExit("Error: no chapter PDFs were written.")
-    export_full_text(src, dst)
+    export_pdf_text(src, dst / f"{src.stem}.txt", pdftotext, "whole-document")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -116,7 +169,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("input_pdf", help="Input PDF file with an embedded table of contents.")
     parser.add_argument(
         "output_dir",
-        help="Destination directory for per-chapter PDF files and a whole-document text file.",
+        nargs="?",
+        help="Optional destination directory. Defaults to '.pdfsplit/<input filename>/' in the current directory.",
     )
     return parser
 
