@@ -28,12 +28,14 @@ Optional outputs:
 
 - `jsonl/*.jsonl` streaming sidecars (`--jsonl`)
 
+PNG sheet renders are attempted with CairoSVG first and automatically retried with Inkscape if CairoSVG is
+unavailable or fails during rendering.
+
 Examples:
     kicad2llm /path/to/project
     kicad2llm --jsonl /path/to/project
     python scripts/kicad2llm.py /path/to/project
 
-Published on https://gist.github.com/pavel-kirienko/69803e131a827738ba27a073db256669
 Pavel Kirienko <pavel.kirienko@zubax.com>, MIT license.
 """
 
@@ -231,26 +233,35 @@ def export_svg_sheets(root_schematic: Path, svg_dir: Path, kicad_cli: str, log: 
 
 
 def convert_svgs_to_png(svg_paths: list[Path], png_dir: Path, log: logging.Logger) -> list[Path]:
-    png_paths: list[Path] = []
-    try:
+    png_paths = [png_dir / f"{svg_path.stem}.png" for svg_path in svg_paths]
+
+    def convert_with_cairosvg() -> list[Path]:
         import cairosvg  # type: ignore
 
         log.info("Converting SVG sheets to PNG with CairoSVG")
-        for svg_path in svg_paths:
-            png_path = png_dir / f"{svg_path.stem}.png"
+        for svg_path, png_path in zip(svg_paths, png_paths):
             log.debug("Converting %s -> %s", svg_path.name, png_path.name)
             cairosvg.svg2png(url=str(svg_path), write_to=str(png_path), scale=PNG_SCALE)
-            png_paths.append(png_path)
-    except ImportError:
+        return png_paths
+
+    def require_inkscape(cairo_failure: Exception | None = None) -> str:
         inkscape = shutil.which("inkscape")
-        if not inkscape:
+        if inkscape:
+            return inkscape
+        if cairo_failure is None:
             raise KiCad2LLMError(
                 "unable to convert SVG to PNG automatically: neither the Python package 'cairosvg' "
                 "nor the 'inkscape' executable is available"
             ) from None
+        raise KiCad2LLMError(
+            "CairoSVG failed while converting schematic sheets to PNG "
+            f"({type(cairo_failure).__name__}: {cairo_failure}) and the Inkscape fallback is unavailable because "
+            "the 'inkscape' executable is not in PATH"
+        ) from cairo_failure
+
+    def convert_with_inkscape(inkscape: str) -> list[Path]:
         log.info("Converting SVG sheets to PNG with Inkscape")
-        for svg_path in svg_paths:
-            png_path = png_dir / f"{svg_path.stem}.png"
+        for svg_path, png_path in zip(svg_paths, png_paths):
             log.debug("Converting %s -> %s", svg_path.name, png_path.name)
             run_subprocess(
                 [
@@ -262,7 +273,27 @@ def convert_svgs_to_png(svg_paths: list[Path], png_dir: Path, log: logging.Logge
                 ],
                 log,
             )
-            png_paths.append(png_path)
+        return png_paths
+
+    def remove_partial_pngs() -> None:
+        for png_path in png_paths:
+            if png_path.exists() or png_path.is_symlink():
+                log.debug("Removing partial PNG output: %s", png_path)
+                remove_path(png_path)
+
+    try:
+        convert_with_cairosvg()
+    except ImportError:
+        convert_with_inkscape(require_inkscape())
+    except Exception as ex:
+        log.warning(
+            "CairoSVG failed while converting schematic sheets to PNG (%s: %s). Retrying with Inkscape.",
+            type(ex).__name__,
+            ex,
+        )
+        log.debug("CairoSVG conversion failure details", exc_info=ex)
+        remove_partial_pngs()
+        convert_with_inkscape(require_inkscape(ex))
     for png_path in png_paths:
         if not png_path.is_file():
             raise KiCad2LLMError(f"expected PNG was not created: {png_path}")
@@ -2688,6 +2719,8 @@ This directory contains a source-traceable export of a KiCad project intended fo
 
 - XML netlist export remains the authoritative connectivity source.
 - `.kicad_sch` parsing is used only to recover structure and provenance that XML omits.
+- PNG sheet renders are generated with CairoSVG when possible and retried with Inkscape if CairoSVG is unavailable
+  or fails during rendering.
 - `net_groups.json` distinguishes explicit KiCad bus-derived groups from inferred numbered-net groups.
 - `interfaces.json` is built from shared nets that include at least one non-passive, non-power pin type and are not high-fanout interface rails.
 - Suppressed high-fanout interface nets are listed in `bundle.json` diagnostics and remain visible in their net artifacts.

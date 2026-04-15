@@ -40,7 +40,6 @@ Split a large PDF into separate per-chapter directories using its embedded table
 Each chapter directory contains the chapter PDF, one 250 DPI PNG per page, and a chapter-local text dump
 generated with `pdftotext`.
 The output root also contains one whole-document text file generated with `pdftotext`.
-The tool prints one progress line to `stderr` for each processed chapter.
 Helps agents search huge datasheets.
 
 ```bash
@@ -48,10 +47,9 @@ pdfsplit stm32h725vg.pdf
 pdfsplit stm32h725vg.pdf stm32h725vg/
 ```
 
-If no output directory is given, the default destination is `.pdfsplit/<input filename>/` in the current working
-directory.
+If no output directory is given, the default destination is `.pdfsplit/<input filename>/` in the current working directory.
 
-Default output layout:
+Default output layout example:
 
 ```text
 ./.pdfsplit/stm32h725vg.pdf/
