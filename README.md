@@ -36,13 +36,12 @@ This writes a `.kicad2llm/` directory next to the KiCad project file with JSON a
 
 ### `pdfsplit.py`
 
-Split a large PDF into chapter PDFs using its embedded table of contents. Allows agents to read huge datasheets.
+Split a large PDF into separate per-chapter PDFs using its embedded table of contents and extract one whole-document text file using `pdftotext`.
+Helps agents search huge datasheets.
 
 ```bash
 pdfsplit stm32h725vg.pdf stm32h725vg/
 ```
-
-This creates one output PDF per top-level table-of-contents entry.
 
 ### `zubax_forum_export.py`
 
