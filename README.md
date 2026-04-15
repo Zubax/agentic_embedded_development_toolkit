@@ -2,21 +2,18 @@
 
 A loose collection of simple tools that enable efficient AI-assisted development of embedded software.
 
-## Repository layout
+## Scripts available
 
-- `scripts/kicad2llm.py`: Export KiCad projects into an LLM-friendly bundle.
-- `scripts/pdfsplit.py`: Split a PDF into chapter PDFs using its embedded table of contents.
-- `scripts/zubax_forum_export.py`: Export Zubax Forum threads and linked topics into local Markdown.
+All are located under `scripts/`.
 
-## Development
+### `kicad2llm.py`
 
-Python formatting is configured in `pyproject.toml` and uses Black with a maximum line length of 120
-characters.
+Export KiCad projects into an LLM-friendly bundle. Allows agents to read schematics efficiently.
 
-To format the repository:
+### `pdfsplit.py`
 
-```bash
-black .
-```
+Split a large PDF into chapter PDFs using its embedded table of contents. Allows agents to read huge datasheets.
 
-Additional notes are available in `docs/development.md`.
+### `zubax_forum_export.py`
+
+Export Zubax Forum threads and linked topics into local Markdown. Used for fetching design specifications and R&D notes.
